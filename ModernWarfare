@@ -1,0 +1,772 @@
+"""ModernWarfare Game"""
+
+import arcade
+import pymunk
+import math
+import random
+import time
+
+# Constants
+
+# Screen
+SCREEN_WIDTH = 1152
+SCREEN_HEIGHT = 648
+SCREEN_TITLE = "ModernWarfare"
+
+# Scaling
+CHARACTER_SCALING = 1
+ITEM_SCALING = 0.7
+TILE_SCALING = 1
+CROSSHAIR_SCALING = 0.2
+BULLET_SCALING = 0.2
+
+# Player properties
+PLAYER_MOVEMENT_SPEED = 3
+PLAYER_JUMP_SPEED = 15
+GRAVITY = 1
+ITEM_TAG = 1
+ITEM_MIRRORED = 0
+
+# Projectile
+BULLET_SPEED = 20
+FIRE_RATE = 10
+
+# Margin
+LEFT_VIEWPORT_MARGIN = 250
+RIGHT_VIEWPORT_MARGIN = 250
+BOTTOM_VIEWPORT_MARGIN = 100
+TOP_VIEWPORT_MARGIN = 100
+
+# Resource Directory
+PLAYER_RESOURCES = "resources/player/character1/"
+ITEM_RESOURCES = "resources/item/"
+
+
+class ModernWarfare(arcade.Window):
+    """Main"""
+
+    def __init__(self):
+        """Call parent class & setup window"""
+        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+
+        # Lists- keeps track of objects
+        self.player_list = None
+        self.crosshair_list = None
+        self.bullet_list = None
+        self.enempy_spawn_list = None
+
+        # Map List
+        self.front_list = None
+        self.platform_list = None
+        self.elevator_list = None
+        self.ladder_list = None
+        self.solid_list = None
+        self.wall_list = None
+        self.background_list = None
+        self.background2_list = None
+
+        # Player anchor
+        self.anchor = None
+
+        # Player
+        self.head = None
+        self.body = None
+        self.left_arm = None
+        self.right_arm = None
+        self.left_leg = None
+        self.right_leg = None
+        self.hand = None
+
+        # Control
+        self.left_pressed = False
+        self.right_pressed = False
+        self.up_pressed = False
+        self.down_pressed = False
+        self.shift_pressed = False
+        self.ctrl_pressed = False
+        self.jump_needs_reset = False
+        self.mouse_left_pressed = False
+
+        # Cursor
+        self.set_mouse_visible(False)
+        self.crosshair = None
+
+        # Facing
+        self.facing = 0
+
+        # Scrolling
+        self.view_left = 0
+        self.view_bottom = 0
+
+        # Moving
+        self.moving_right = False
+        self.moving_left = False
+
+        # Physics engine
+        self.physics_engine = None
+
+        # Timer
+        self.bullet_cooldown_timer = 0.0
+
+        arcade.set_background_color(arcade.csscolor.CORNFLOWER_BLUE)
+
+    def setup(self):
+        """Setup"""
+
+        # Lists
+        self.player_list = arcade.SpriteList()
+        self.crosshair_list = arcade.SpriteList()
+        self.bullet_list = arcade.SpriteList()
+        self.enempy_spawn_list = arcade.SpriteList
+
+        # Map list
+        self.front_list = arcade.SpriteList()
+        self.platform_list = arcade.SpriteList()
+        self.elevator_list = arcade.SpriteList()
+        self.ladder_list = arcade.SpriteList()
+        self.solid_list = arcade.SpriteList()
+        self.wall_list = arcade.SpriteList()
+        self.background_list = arcade.SpriteList()
+        self.background2_list = arcade.SpriteList()
+
+        # Setup player
+        self.anchor = arcade.Sprite("{}anchor.png".format(PLAYER_RESOURCES), CHARACTER_SCALING)
+        self.anchor.center_x = 100
+        self.anchor.center_y = 100
+        self.player_list.append(self.anchor)
+
+        self.left_arm = arcade.Sprite()
+        self.left_arm.center_x
+        self.left_arm.center_y
+        self.left_arm.angle
+        self.left_arm.texture = arcade.load_texture("{}left_arm.png".format(PLAYER_RESOURCES), scale=CHARACTER_SCALING)
+        self.left_arm.textures.append(self.left_arm.texture)
+        self.left_arm.texture = arcade.load_texture("{}left_arm.png".format(PLAYER_RESOURCES), mirrored=True,
+                                                    scale=CHARACTER_SCALING)
+        self.left_arm.textures.append(self.left_arm.texture)
+        self.left_arm.set_texture(self.facing)
+        self.player_list.append(self.left_arm)
+
+        self.left_leg = arcade.Sprite()
+        self.left_leg.center_x
+        self.left_leg.center_y
+        self.left_leg.angle
+        self.left_leg.texture = arcade.load_texture("{}left_leg.png".format(PLAYER_RESOURCES), scale=CHARACTER_SCALING)
+        self.left_leg.textures.append(self.left_leg.texture)
+        self.left_leg.texture = arcade.load_texture("{}left_leg.png".format(PLAYER_RESOURCES), mirrored=True,
+                                                    scale=CHARACTER_SCALING)
+        self.left_leg.textures.append(self.left_leg.texture)
+        self.left_leg.set_texture(self.facing)
+        self.player_list.append(self.left_leg)
+
+        self.right_leg = arcade.Sprite()
+        self.right_leg.center_x
+        self.right_leg.center_y
+        self.right_leg.angle
+        self.right_leg.height
+        self.right_leg.texture = arcade.load_texture("{}right_leg.png".format(PLAYER_RESOURCES),
+                                                     scale=CHARACTER_SCALING)
+        self.right_leg.textures.append(self.right_leg.texture)
+        self.right_leg.texture = arcade.load_texture("{}right_leg.png".format(PLAYER_RESOURCES), mirrored=True,
+                                                     scale=CHARACTER_SCALING)
+        self.right_leg.textures.append(self.right_leg.texture)
+        self.right_leg.set_texture(self.facing)
+        self.player_list.append(self.right_leg)
+
+        self.body = arcade.Sprite()
+        self.body.center_x
+        self.body.center_y
+        self.body.bottom
+        self.body.top
+        self.body.angle
+        self.body.texture = arcade.load_texture("{}body.png".format(PLAYER_RESOURCES), scale=CHARACTER_SCALING)
+        self.body.textures.append(self.body.texture)
+        self.body.texture = arcade.load_texture("{}body.png".format(PLAYER_RESOURCES), mirrored=True,
+                                                scale=CHARACTER_SCALING)
+        self.body.textures.append(self.body.texture)
+        self.body.set_texture(self.facing)
+        self.player_list.append(self.body)
+
+        self.head = arcade.Sprite()
+        self.head.center_x
+        self.head.center_y
+        self.head.angle
+        self.head.texture = arcade.load_texture("{}head.png".format(PLAYER_RESOURCES), scale=CHARACTER_SCALING)
+        self.head.textures.append(self.head.texture)
+        self.head.texture = arcade.load_texture("{}head.png".format(PLAYER_RESOURCES), mirrored=True,
+                                                scale=CHARACTER_SCALING)
+        self.head.textures.append(self.head.texture)
+        self.head.set_texture(self.facing)
+        self.player_list.append(self.head)
+
+        self.hand = arcade.Sprite()
+        self.hand.center_x
+        self.hand.center_y
+        self.hand.angle
+        self.hand.height
+        self.hand.width
+        self.hand.texture = arcade.load_texture("{}anchor.png".format(PLAYER_RESOURCES))
+        self.hand.textures.append(self.hand.texture)
+        self.hand.texture = arcade.load_texture("{}/weapons/Ak47/Ak47.png".format(ITEM_RESOURCES), scale=ITEM_SCALING)
+        self.hand.textures.append(self.hand.texture)
+        self.hand.texture = arcade.load_texture("{}/weapons/Ak47/Ak47 Mirrored.png".format(ITEM_RESOURCES),
+                                                scale=ITEM_SCALING)
+        self.hand.textures.append(self.hand.texture)
+        self.hand.set_texture(ITEM_TAG)
+        self.player_list.append(self.hand)
+
+        self.right_arm = arcade.Sprite()
+        self.right_arm.center_x
+        self.right_arm.center_y
+        self.right_arm.angle
+        self.right_arm.height
+        self.right_arm.texture = arcade.load_texture("{}right_arm.png".format(PLAYER_RESOURCES),
+                                                     scale=CHARACTER_SCALING)
+        self.right_arm.textures.append(self.right_arm.texture)
+        self.right_arm.texture = arcade.load_texture("{}right_arm.png".format(PLAYER_RESOURCES), mirrored=True,
+                                                     scale=CHARACTER_SCALING)
+        self.right_arm.textures.append(self.right_arm.texture)
+        self.right_arm.set_texture(self.facing)
+        self.player_list.append(self.right_arm)
+
+        # Setup crosshair
+        self.crosshair = arcade.Sprite("resources/crosshair/crosshair.png", CROSSHAIR_SCALING)
+        self.crosshair.center_x
+        self.crosshair.center_y
+        self.player_list.append(self.crosshair)
+
+        # Setup map
+
+        map_name = "resources/map/map.tmx"
+
+        # Layer names
+        front_layer_name = "Front"
+        platform_layer_name = "Platform"
+        elevator_layer_name = "Elevator"
+        ladder_layer_name = "Ladder"
+        solid_layer_name = "Solid"
+        wall_layer_name = "Wall"
+        background_layer_name = "Background"
+        background2_layer_name = "Background2"
+
+        # Read in the tiled map
+        my_map = arcade.tilemap.read_tmx(map_name)
+
+        # Platforms
+        self.front_list = arcade.tilemap.process_layer(my_map, front_layer_name, TILE_SCALING)
+        self.platform_list = arcade.tilemap.process_layer(my_map, platform_layer_name, TILE_SCALING)
+        self.elevator_list = arcade.tilemap.process_layer(my_map, elevator_layer_name, TILE_SCALING)
+        self.ladder_list = arcade.tilemap.process_layer(my_map, ladder_layer_name, TILE_SCALING)
+        self.solid_list = arcade.tilemap.process_layer(my_map, solid_layer_name, TILE_SCALING)
+        self.wall_list = arcade.tilemap.process_layer(my_map, wall_layer_name, TILE_SCALING)
+        self.background_list = arcade.tilemap.process_layer(my_map, background_layer_name, TILE_SCALING)
+        self.background2_list = arcade.tilemap.process_layer(my_map, background2_layer_name, TILE_SCALING)
+
+        # Set the background color
+        if my_map.background_color:
+            arcade.set_background_color(my_map.background_color)
+
+        # Setup physics engine
+        self.physics_engine = arcade.PhysicsEnginePlatformer(self.anchor,
+                                                             self.solid_list,
+                                                             gravity_constant=GRAVITY)
+
+        # Setup Enemy Spawn
+
+        # Setup item
+
+    def on_draw(self):
+        """Draw"""
+
+        # Start render
+        arcade.start_render()
+
+        # Draw sprites
+        self.bullet_list.draw()
+        self.player_list.draw()
+        self.crosshair_list.draw()
+
+        self.front_list.draw()
+        self.platform_list.draw()
+        self.elevator_list.draw()
+        self.ladder_list.draw()
+        self.solid_list.draw()
+        self.wall_list.draw()
+        self.background_list.draw()
+        self.background2_list.draw()
+
+    def process_keychange(self):
+        """
+        Called when we change a key up/down or we move on/off a ladder.
+        """
+        # Process up/down
+        if self.up_pressed and not self.down_pressed:
+            if self.physics_engine.is_on_ladder():
+                self.anchor.change_y = PLAYER_MOVEMENT_SPEED
+            elif self.physics_engine.can_jump() and not self.jump_needs_reset:
+                self.anchor.change_y = PLAYER_JUMP_SPEED
+                self.jump_needs_reset = True
+        elif self.down_pressed and not self.up_pressed:
+            if self.physics_engine.is_on_ladder():
+                self.anchor.change_y = -PLAYER_MOVEMENT_SPEED
+
+        # Process up/down when on a ladder and no movement
+        if self.physics_engine.is_on_ladder():
+            if not self.up_pressed and not self.down_pressed:
+                self.anchor.change_y = 0
+            elif self.up_pressed and self.down_pressed:
+                self.anchor.change_y = 0
+
+        # Process left/right
+        if self.right_pressed and not self.left_pressed:
+            if not self.shift_pressed and not self.ctrl_pressed:
+                self.anchor.change_x = PLAYER_MOVEMENT_SPEED
+            elif self.ctrl_pressed:
+                self.anchor.change_x = PLAYER_MOVEMENT_SPEED * 0.5
+            elif self.shift_pressed:
+                self.anchor.change_x = PLAYER_MOVEMENT_SPEED * 2
+        elif self.left_pressed and not self.right_pressed:
+            if not self.shift_pressed and not self.ctrl_pressed:
+                self.anchor.change_x = -PLAYER_MOVEMENT_SPEED
+            elif self.ctrl_pressed:
+                self.anchor.change_x = -PLAYER_MOVEMENT_SPEED * 0.5
+            elif self.shift_pressed:
+                self.anchor.change_x = -PLAYER_MOVEMENT_SPEED * 2
+        else:
+            self.anchor.change_x = 0
+
+    def on_key_press(self, key, modifiers):
+        """Called whenever a key is pressed. """
+
+        fullscreen = True
+
+        if key == arcade.key.F10:
+            if fullscreen:
+                # User hits f10. Flip between full and not full screen.
+                self.set_fullscreen(not self.fullscreen)
+
+                """Get the window coordinates. Match viewport to window coordinates
+                so there is a one-to-one mapping."""
+                width, height = self.get_size()
+                self.set_viewport(0, width, 0, height)
+                fullscreen = False
+            elif not fullscreen:
+                # User hits f10. Flip between full and not full screen.
+                self.set_fullscreen(not self.fullscreen)
+
+                """Instead of a one-to-one mapping, stretch/squash window to match the
+                constants. This does NOT respect aspect ratio. You'd need to
+                do a bit of math for that."""
+                self.set_viewport(0, SCREEN_WIDTH, 0, SCREEN_HEIGHT)
+                fullscreen = True
+
+        if key == arcade.key.SPACE:
+            self.up_pressed = True
+        elif key == arcade.key.S:
+            self.down_pressed = True
+        elif key == arcade.key.A:
+            self.left_pressed = True
+        elif key == arcade.key.D:
+            self.right_pressed = True
+        elif key == arcade.key.LSHIFT:
+            self.shift_pressed = True
+        elif key == arcade.key.LCTRL:
+            self.ctrl_pressed = True
+
+        self.process_keychange()
+
+    def on_key_release(self, key, modifiers):
+        """ Called when the user releases a key. """
+
+        if key == arcade.key.SPACE:
+            self.up_pressed = False
+            self.jump_needs_reset = False
+        elif key == arcade.key.S:
+            self.down_pressed = False
+        elif key == arcade.key.A:
+            self.left_pressed = False
+        elif key == arcade.key.D:
+            self.right_pressed = False
+        elif key == arcade.key.LSHIFT:
+            self.shift_pressed = False
+        elif key == arcade.key.LCTRL:
+            self.ctrl_pressed = False
+
+        self.process_keychange()
+
+    def on_mouse_motion(self, x, y, dx, dy):
+        """Called whenever the mouse moves."""
+        self.crosshair.center_x = x
+        self.crosshair.center_y = y
+
+    def on_mouse_press(self, x, y, button, modifiers):
+        """Called whenever the mouse is pressed."""
+        self.mouse_left_pressed = True
+
+    def on_mouse_release(self, x, y, button, modifiers):
+        """Called whenever the mouse is released."""
+        self.mouse_left_pressed = False
+
+    def on_update(self, delta_time):
+        """ Called to update our objects. Happens approximately 60 times per second."""
+        """ Movement and game logic """
+
+        self.physics_engine.update()
+        self.bullet_list.update()
+
+        self.body.center_x = self.anchor.center_x
+        if not self.ctrl_pressed:
+            self.body.center_y = self.anchor.center_y + self.body.height * 1.5
+        elif self.ctrl_pressed:
+            self.body.center_y = self.anchor.center_y + math.cos(
+                math.radians(self.body.angle)) * self.body.height / 2 + self.right_leg.height / 2
+        if self.anchor.center_x < self.crosshair.center_x:
+            if not self.ctrl_pressed:
+                self.body.angle = 0
+            elif self.ctrl_pressed:
+                self.body.angle = -35
+        elif self.anchor.center_x > self.crosshair.center_x:
+            if not self.ctrl_pressed:
+                self.body.angle = 0
+            elif self.ctrl_pressed:
+                self.body.angle = 35
+        self.body.set_texture(self.facing)
+
+        self.head.center_x = self.body.center_x + math.sin(-math.radians(self.body.angle)) * self.body.height / 2
+        self.head.center_y = self.body.center_y + math.cos(-math.radians(self.body.angle)) * self.body.height / 2
+        self.head.set_texture(self.facing)
+        if self.crosshair.center_x == self.head.center_x:
+            self.head.angle = 90
+        else:
+            self.head.angle = math.degrees(math.atan(
+                (self.crosshair.center_y - self.head.center_y) / (self.crosshair.center_x - self.head.center_x)))
+
+        self.left_arm.center_x = self.body.center_x + math.sin(
+            -math.radians(self.body.angle)) * self.body.height * 1 / 3
+        self.left_arm.center_y = self.body.center_y + math.cos(
+            -math.radians(self.body.angle)) * self.body.height * 1 / 3
+        self.left_arm.set_texture(self.facing)
+        if ITEM_TAG == 0:
+            if not self.ctrl_pressed:
+                self.left_arm.angle = self.right_leg.angle
+            elif self.ctrl_pressed:
+                self.left_arm.angle = self.right_leg.angle + self.body.angle
+        elif ITEM_TAG > 0:
+            if self.crosshair.center_x == self.left_arm.center_x:
+                self.left_arm.angle = 90
+                self.hand.set_texture(ITEM_TAG)
+            elif self.crosshair.center_x > self.left_arm.center_x:
+                self.left_arm.angle = math.degrees(math.atan((self.crosshair.center_y - self.left_arm.center_y) / (
+                        self.crosshair.center_x - self.left_arm.center_x))) + 90
+                self.hand.set_texture(ITEM_TAG)
+            elif self.crosshair.center_x < self.left_arm.center_x:
+                self.left_arm.angle = math.degrees(math.atan((self.crosshair.center_y - self.left_arm.center_y) / (
+                        self.crosshair.center_x - self.left_arm.center_x))) - 90
+                self.hand.set_texture(ITEM_TAG + 1)
+
+        self.right_arm.center_x = self.body.center_x + math.sin(
+            -math.radians(self.body.angle)) * self.body.height / 3 * 1
+        self.right_arm.center_y = self.body.center_y + math.cos(
+            -math.radians(self.body.angle)) * self.body.height / 3 * 1
+        if ITEM_TAG == 0:
+            if not self.ctrl_pressed:
+                self.right_arm.angle = -self.right_leg.angle
+            elif self.ctrl_pressed:
+                self.right_arm.angle = -self.right_leg.angle + self.body.angle
+        elif ITEM_TAG > 0:
+            if self.crosshair.center_x == self.right_arm.center_x:
+                self.right_arm.angle = 90
+            elif self.crosshair.center_x > self.right_arm.center_x:
+                self.right_arm.angle = math.degrees(math.atan((self.crosshair.center_y - self.left_arm.center_y) / (
+                        self.crosshair.center_x - self.left_arm.center_x))) + 90
+            elif self.crosshair.center_x < self.right_arm.center_x:
+                self.right_arm.angle = math.degrees(math.atan((self.crosshair.center_y - self.left_arm.center_y) / (
+                        self.crosshair.center_x - self.left_arm.center_x))) - 90
+        self.right_arm.set_texture(self.facing)
+
+        self.left_leg.center_x = self.body.center_x - math.sin(-math.radians(self.body.angle)) * self.body.height / 2
+        self.left_leg.center_y = self.body.center_y - math.cos(-math.radians(self.body.angle)) * self.body.height / 2
+        self.left_leg.angle = -self.right_leg.angle
+        self.left_leg.set_texture(self.facing)
+
+        self.right_leg.center_x = self.body.center_x - math.sin(-math.radians(self.body.angle)) * self.body.height / 2
+        self.right_leg.center_y = self.body.center_y - math.cos(-math.radians(self.body.angle)) * self.body.height / 2
+        self.right_leg.set_texture(self.facing)
+
+        if self.anchor.center_x < self.crosshair.center_x:
+            self.facing = 0
+            if self.right_pressed and not self.left_pressed:
+                if not self.shift_pressed and not self.ctrl_pressed:
+                    if self.right_leg.angle > 30:
+                        self.right_leg.angle -= 5
+                    elif self.right_leg.angle < -30:
+                        self.right_leg.angle += 5
+                    elif self.right_leg.angle < 30 or self.right_leg.angle > -30:
+                        if self.moving_right:
+                            self.right_leg.angle += 2
+                            if self.right_leg.angle >= 30:
+                                self.moving_right = False
+                        elif not self.moving_right:
+                            self.right_leg.angle -= 2
+                            if self.right_leg.angle <= -30:
+                                self.moving_right = True
+                elif self.shift_pressed and not self.ctrl_pressed:
+                    if self.moving_right:
+                        self.right_leg.angle += 5
+                        if self.right_leg.angle >= 50:
+                            self.moving_right = False
+                    elif not self.moving_right:
+                        self.right_leg.angle -= 5
+                        if self.right_leg.angle <= -50:
+                            self.moving_right = True
+                elif not self.shift_pressed and self.ctrl_pressed or self.shift_pressed and self.ctrl_pressed:
+                    if self.right_leg.angle > 10:
+                        self.right_leg.angle -= 5
+                    elif self.right_leg.angle < -10:
+                        self.right_leg.angle += 5
+                    elif self.right_leg.angle < 30 or self.right_leg.angle > -30:
+                        if self.moving_right:
+                            self.right_leg.angle += 0.5
+                            if self.right_leg.angle >= 10:
+                                self.moving_right = False
+                        elif not self.moving_right:
+                            self.right_leg.angle -= 0.5
+                            if self.right_leg.angle <= -10:
+                                self.moving_right = True
+            elif self.left_pressed and not self.right_pressed:
+                if not self.shift_pressed and not self.ctrl_pressed:
+                    if self.right_leg.angle > 30:
+                        self.right_leg.angle -= 5
+                    elif self.right_leg.angle < -30:
+                        self.right_leg.angle += 5
+                    elif self.right_leg.angle < 30 or self.right_leg.angle > -30:
+                        if self.moving_left:
+                            self.right_leg.angle -= 2
+                            if self.right_leg.angle <= -30:
+                                self.moving_left = False
+                        elif not self.moving_left:
+                            self.right_leg.angle += 2
+                            if self.right_leg.angle >= 30:
+                                self.moving_left = True
+                elif self.shift_pressed and not self.ctrl_pressed:
+                    if self.moving_left:
+                        self.right_leg.angle -= 5
+                        if self.right_leg.angle <= -50:
+                            self.moving_left = False
+                    elif not self.moving_left:
+                        self.right_leg.angle += 5
+                        if self.right_leg.angle >= 50:
+                            self.moving_left = True
+                elif not self.shift_pressed and self.ctrl_pressed or self.shift_pressed and self.ctrl_pressed:
+                    if self.right_leg.angle > 10:
+                        self.right_leg.angle -= 5
+                    elif self.right_leg.angle < -10:
+                        self.right_leg.angle += 5
+                    elif self.right_leg.angle < 30 or self.right_leg.angle > -30:
+                        if self.moving_left:
+                            self.right_leg.angle -= 0.5
+                            if self.right_leg.angle <= -10:
+                                self.moving_left = False
+                        elif not self.moving_left:
+                            self.right_leg.angle += 0.5
+                            if self.right_leg.angle >= 10:
+                                self.moving_left = True
+            elif self.anchor.change_x == 0:
+                if self.right_leg.angle < 0:
+                    self.right_leg.angle += 5
+                    if abs(self.right_leg.angle) < 10 and abs(self.right_leg.angle) % 5 < 5:
+                        self.right_leg.angle = 0
+                elif self.right_leg.angle > 0:
+                    self.right_leg.angle -= 5
+                    if abs(self.right_leg.angle) < 10 and abs(self.right_leg.angle) % 5 < 5:
+                        self.right_leg.angle = 0
+                elif self.right_leg.angle == 0:
+                    self.moving_right = False
+                    self.moving_left = False
+        elif self.anchor.center_x > self.crosshair.center_x:
+            self.facing = 1
+            if self.right_pressed and not self.left_pressed:
+                if not self.shift_pressed and not self.ctrl_pressed:
+                    if self.moving_right:
+                        self.right_leg.angle += 2
+                        if self.right_leg.angle >= 30:
+                            self.moving_right = False
+                    elif not self.moving_right:
+                        self.right_leg.angle -= 2
+                        if self.right_leg.angle <= -30:
+                            self.moving_right = True
+                elif self.shift_pressed and not self.ctrl_pressed:
+                    if self.moving_right:
+                        self.right_leg.angle += 5
+                        if self.right_leg.angle >= 50:
+                            self.moving_right = False
+                    elif not self.moving_right:
+                        self.right_leg.angle -= 5
+                        if self.right_leg.angle <= -50:
+                            self.moving_right = True
+                elif not self.shift_pressed and self.ctrl_pressed or self.shift_pressed and self.ctrl_pressed:
+                    if self.right_leg.angle > 10:
+                        self.right_leg.angle -= 5
+                    elif self.right_leg.angle < -10:
+                        self.right_leg.angle += 5
+                    elif self.right_leg.angle < 30 or self.right_leg.angle > -30:
+                        if self.moving_right:
+                            self.right_leg.angle += 0.5
+                            if self.right_leg.angle >= 10:
+                                self.moving_right = False
+                        elif not self.moving_right:
+                            self.right_leg.angle -= 0.5
+                            if self.right_leg.angle <= -10:
+                                self.moving_right = True
+            elif self.left_pressed and not self.right_pressed:
+                if not self.shift_pressed and not self.ctrl_pressed:
+                    if self.moving_left:
+                        self.right_leg.angle -= 2
+                        if self.right_leg.angle <= -30:
+                            self.moving_left = False
+                    elif not self.moving_left:
+                        self.right_leg.angle += 2
+                        if self.right_leg.angle >= 30:
+                            self.moving_left = True
+                elif self.shift_pressed and not self.ctrl_pressed:
+                    if self.moving_left:
+                        self.right_leg.angle -= 5
+                        if self.right_leg.angle <= -50:
+                            self.moving_left = False
+                    elif not self.moving_left:
+                        self.right_leg.angle += 5
+                        if self.right_leg.angle >= 50:
+                            self.moving_left = True
+                elif not self.shift_pressed and self.ctrl_pressed or self.shift_pressed and self.ctrl_pressed:
+                    if self.right_leg.angle > 10:
+                        self.right_leg.angle -= 5
+                    elif self.right_leg.angle < -10:
+                        self.right_leg.angle += 5
+                    elif self.right_leg.angle < 30 or self.right_leg.angle > -30:
+                        if self.moving_left:
+                            self.right_leg.angle -= 0.5
+                            if self.right_leg.angle <= -10:
+                                self.moving_left = False
+                        elif not self.moving_left:
+                            self.right_leg.angle += 0.5
+                            if self.right_leg.angle >= 10:
+                                self.moving_left = True
+            elif self.anchor.change_x == 0:
+                if self.right_leg.angle < 0:
+                    self.right_leg.angle += 5
+                    if abs(self.right_leg.angle) < 10 and abs(self.right_leg.angle) % 5 < 5:
+                        self.right_leg.angle = 0
+                elif self.right_leg.angle > 0:
+                    self.right_leg.angle -= 5
+                    if abs(self.right_leg.angle) < 10 and abs(self.right_leg.angle) % 5 < 5:
+                        self.right_leg.angle = 0
+                elif self.right_leg.angle == 0:
+                    self.moving_right = False
+                    self.moving_left = False
+
+        self.hand.center_x = self.right_arm.center_x + math.sin(
+            math.radians(self.right_arm.angle)) * self.right_arm.height / 2
+        self.hand.center_y = self.right_arm.center_y - math.cos(
+            math.radians(self.right_arm.angle)) * self.right_arm.height / 2
+        self.hand.angle = self.right_arm.angle - 90
+
+        if self.mouse_left_pressed:
+            if self.bullet_cooldown_timer == 0.0:
+
+                # Create a bullet
+                bullet = arcade.Sprite()
+                accuracy = random.uniform(-2, 2)
+
+                if self.facing == 0:
+                    bullet.texture = arcade.load_texture("{}/weapons/Bullet/AR Bullet.png".format(ITEM_RESOURCES),
+                                                         scale=BULLET_SCALING)
+                elif self.facing == 1:
+                    bullet.texture = arcade.load_texture("{}/weapons/Bullet/AR Bullet.png".format(ITEM_RESOURCES),
+                                                         mirrored=True, scale=BULLET_SCALING)
+
+                # Position the bullet at the player's current location
+                if self.facing == 0:
+                    bullet.center_x = self.hand.center_x + math.sin(
+                        math.radians(-self.hand.angle + 90)) * self.hand.width / 2 + math.cos(
+                        math.radians(self.hand.angle + 90)) * self.hand.height / 3
+                    bullet.center_y = self.hand.center_y + math.cos(
+                        math.radians(-self.hand.angle + 90)) * self.hand.width / 2 + math.sin(
+                        math.radians(self.hand.angle + 90)) * self.hand.height / 3
+                elif self.facing == 1:
+                    bullet.center_x = self.hand.center_x + math.sin(
+                        math.radians(-self.hand.angle + 90)) * self.hand.width / 2 - math.cos(
+                        math.radians(self.hand.angle + 90)) * self.hand.height / 3
+                    bullet.center_y = self.hand.center_y + math.cos(
+                        math.radians(-self.hand.angle + 90)) * self.hand.width / 2 - math.sin(
+                        math.radians(self.hand.angle + 90)) * self.hand.height / 3
+
+                # Angle the bullet sprite so it doesn't look like it is flying
+                # sideways.
+                bullet.angle = self.head.angle + accuracy
+
+                # Taking into account the angle, calculate our change_x
+                # and change_y. Velocity is how fast the bullet travels.
+                bullet.change_x = math.cos(math.radians(self.hand.angle + accuracy)) * BULLET_SPEED
+                bullet.change_y = math.sin(math.radians(self.hand.angle + accuracy)) * BULLET_SPEED
+
+                # Add the bullet to the appropriate lists
+                self.bullet_list.append(bullet)
+
+                # Decrement from the ammo count
+
+            self.bullet_cooldown_timer += delta_time * 10
+            if self.bullet_cooldown_timer >= 1.0:
+                self.bullet_cooldown_timer = 0.0
+
+        # --- Manage Scrolling ---
+
+        # Track if we need to change the viewport
+
+        changed = False
+
+        # Scroll left
+        left_boundary = self.view_left + LEFT_VIEWPORT_MARGIN
+        if self.crosshair.left < left_boundary:
+            self.view_left -= left_boundary - self.crosshair.left
+            changed = True
+
+        # Scroll right
+        right_boundary = self.view_left + SCREEN_WIDTH - RIGHT_VIEWPORT_MARGIN
+        if self.crosshair.right > right_boundary:
+            self.view_left += self.crosshair.right - right_boundary
+            changed = True
+
+        # Scroll up
+        top_boundary = self.view_bottom + SCREEN_HEIGHT - TOP_VIEWPORT_MARGIN
+        if self.crosshair.top > top_boundary:
+            self.view_bottom += self.crosshair.top - top_boundary
+            changed = True
+
+        # Scroll down
+        bottom_boundary = self.view_bottom + BOTTOM_VIEWPORT_MARGIN
+        if self.crosshair.bottom < bottom_boundary:
+            self.view_bottom -= bottom_boundary - self.crosshair.bottom
+            changed = True
+
+        if changed:
+            # Only scroll to integers. Otherwise we end up with pixels that
+            # don't line up on the screen
+            self.view_bottom = int(self.view_bottom)
+            self.view_left = int(self.view_left)
+
+            # Do the scrolling
+            arcade.set_viewport(self.view_left,
+                                SCREEN_WIDTH + self.view_left,
+                                self.view_bottom,
+                                SCREEN_HEIGHT + self.view_bottom)
+
+
+def main():
+    """Main"""
+    window = ModernWarfare()
+    window.setup()
+    arcade.run()
+
+
+if __name__ == '__main__':
+    main()
